@@ -1,0 +1,29 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: #f4f2ec; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #26251f; -webkit-font-smoothing: antialiased; }
+a { color: #2f6f8f; }
+a:hover { color: #245972; }
+input, select, button, textarea { font-family: inherit; }
+input::placeholder { color: #a8a49a; }
+input:focus, select:focus { outline: none; border-color: #26251f !important; }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: #d9d5cc; border-radius: 8px; }
+
+.mono { font-family: 'IBM Plex Mono', monospace; }
+.card { background: #fff; border: 1px solid #e6e3dc; border-radius: 12px; }
+.kpi-label { font-size: 12px; font-weight: 600; color: #6b6862; text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi-value { margin-top: 10px; font-family: 'IBM Plex Mono', monospace; font-size: clamp(20px, 2.4vw, 25px); font-weight: 600; }
+.kpi-dot { width: 9px; height: 9px; border-radius: 3px; }
+.field-label { font-size: 12px; font-weight: 600; color: #6b6862; margin-bottom: 6px; display: block; }
+.input { width: 100%; padding: 10px 12px; border: 1px solid #d9d5cc; border-radius: 8px; font-size: 14px; background: #fff; }
+.h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.th { padding: 10px 8px; font-size: 11px; font-weight: 600; color: #8a867c; text-transform: uppercase; letter-spacing: 0.04em; }
+.tab { flex: 1; padding: 9px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #6b6862; transition: all 0.15s; }
+.tab.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.link-btn { border: none; background: none; color: #6b6862; font-size: 13px; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.link-btn:hover { background: #ebe8e0; color: #26251f; }
+
+/* Login */
+#loginOverlay { position: fixed; inset: 0; background: #f4f2ec; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+.login-card { background: #fff; border: 1px solid #e6e3dc; border-radius: 16px; padding: 32px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+#app { display: none; }

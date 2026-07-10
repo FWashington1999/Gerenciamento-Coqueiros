@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão da Plantação — Coqueiros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ===== Tela de login (senha única da família) ===== -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div style="width: 44px; height: 44px; border-radius: 12px; background: #26251f; color: #f4f2ec; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; margin: 0 auto 16px;">C</div>
+    <h1 style="margin: 0 0 4px; font-size: 20px; font-weight: 700;">Gestão da Plantação</h1>
+    <p style="margin: 0 0 20px; color: #6b6862; font-size: 14px;">Digite a senha da família para entrar</p>
+    <input id="loginPassword" type="password" placeholder="Senha" class="input" style="padding: 12px; text-align: center; margin-bottom: 12px;">
+    <div id="loginError" style="display: none; background: #fbeae5; color: #a8442b; font-size: 13px; padding: 9px 12px; border-radius: 8px; margin-bottom: 12px;"></div>
+    <button id="loginBtn" style="width: 100%; padding: 12px; border: none; border-radius: 9px; background: #26251f; color: #f4f2ec; font-size: 15px; font-weight: 600; cursor: pointer;">Entrar</button>
+    <p id="loginConfigNote" style="display: none; margin: 16px 0 0; font-size: 12px; color: #a8442b;">⚠️ O Supabase ainda não foi configurado. Abra o <b>GUIA.md</b> e preencha os dados no topo do arquivo <b>app.js</b>.</p>
+  </div>
+</div>
+
+<!-- ===== Aplicativo ===== -->
+<div id="app">
+<div style="min-height: 100vh; padding: 28px 20px 64px;">
+  <div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- Header -->
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 34px; height: 34px; border-radius: 9px; background: #26251f; color: #f4f2ec; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">C</div>
+          <h1 style="margin: 0; font-size: clamp(20px, 3vw, 26px); font-weight: 700; letter-spacing: -0.01em;">Gestão da Plantação</h1>
+        </div>
+        <p style="margin: 8px 0 0 46px; color: #6b6862; font-size: 14px;">Controle de entradas, saídas e imprevistos dos coqueiros</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="kpi-label">Ano</span>
+          <select id="yearSelect" style="padding: 9px 12px; border: 1px solid #d9d5cc; border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer;"></select>
+        </div>
+        <button id="exportBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Exportar Excel
+        </button>
+        <button id="logoutBtn" class="link-btn" title="Sair">Sair</button>
+      </div>
+    </header>
+
+    <!-- Aviso de conexão -->
+    <div id="statusBar" style="display: none; font-size: 13px; padding: 10px 14px; border-radius: 8px;"></div>
+
+    <!-- KPIs -->
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px;">
+      <div class="card" style="padding: 18px;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span class="kpi-dot" style="background: #2f8f5b;"></span><span class="kpi-label">Entradas</span></div>
+        <div class="kpi-value" id="kpiEntrada" style="color: #2f8f5b;">R$ 0,00</div>
+      </div>
+      <div class="card" style="padding: 18px;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span class="kpi-dot" style="background: #c0553b;"></span><span class="kpi-label">Saídas</span></div>
+        <div class="kpi-value" id="kpiSaida" style="color: #c0553b;">R$ 0,00</div>
+      </div>
+      <div class="card" style="padding: 18px;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span class="kpi-dot" style="background: #cf9436;"></span><span class="kpi-label">Imprevistos</span></div>
+        <div class="kpi-value" id="kpiImprevisto" style="color: #cf9436;">R$ 0,00</div>
+      </div>
+      <div style="background: #26251f; border: 1px solid #26251f; border-radius: 12px; padding: 18px;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span class="kpi-label" style="color: #b6b2a7;">Resultado do ano</span></div>
+        <div class="kpi-value" id="kpiResultado">R$ 0,00</div>
+      </div>
+    </section>
+
+    <!-- Main: form + charts -->
+    <section style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+
+      <!-- Form -->
+      <div class="card" style="flex: 1 1 320px; padding: 22px;">
+        <h2 class="h2" style="margin-bottom: 16px;">Novo lançamento</h2>
+
+        <div style="display: flex; gap: 6px; padding: 4px; background: #f4f2ec; border-radius: 10px; margin-bottom: 18px;">
+          <button class="tab" data-type="entrada">Entrada</button>
+          <button class="tab" data-type="saida">Saída</button>
+          <button class="tab" data-type="imprevisto">Imprevisto</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label class="field-label">Valor (R$)</label>
+            <input id="fValue" inputmode="decimal" placeholder="0,00" style="width: 100%; padding: 12px; border: 1px solid #d9d5cc; border-radius: 8px; font-size: 20px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; background: #fff;">
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <label class="field-label">Data</label>
+              <input id="fDate" type="date" class="input" style="padding: 10px 12px;">
+            </div>
+            <div style="width: 40%;">
+              <label class="field-label">Qtd (cocos)</label>
+              <input id="fQty" inputmode="numeric" placeholder="—" class="input mono" style="padding: 10px 12px;">
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Descrição</label>
+            <input id="fDesc" placeholder="Ex: Venda para o mercado" class="input" style="padding: 10px 12px;">
+          </div>
+          <div>
+            <label class="field-label">Categoria</label>
+            <input id="fCategory" list="cats" placeholder="Ex: Venda de coco, Adubo, Mão de obra" class="input" style="padding: 10px 12px;">
+            <datalist id="cats">
+              <option value="Venda de coco"></option>
+              <option value="Venda de coco verde"></option>
+              <option value="Adubo"></option>
+              <option value="Mão de obra"></option>
+              <option value="Combustível"></option>
+              <option value="Manutenção"></option>
+              <option value="Ferramentas"></option>
+              <option value="Irrigação"></option>
+              <option value="Transporte"></option>
+              <option value="Outros"></option>
+            </datalist>
+          </div>
+          <div>
+            <label class="field-label">Forma de pagamento</label>
+            <select id="fPayment" class="input" style="padding: 10px 12px; cursor: pointer;">
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Pix">Pix</option>
+              <option value="Cartão">Cartão</option>
+              <option value="Transferência">Transferência</option>
+              <option value="Boleto">Boleto</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          <div id="formError" style="display: none; background: #fbeae5; color: #a8442b; font-size: 13px; padding: 10px 12px; border-radius: 8px;"></div>
+
+          <button id="addBtn" style="width: 100%; padding: 13px; border: none; border-radius: 9px; background: #26251f; color: #f4f2ec; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 2px;">Adicionar lançamento</button>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div style="flex: 2 1 480px; display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+
+        <!-- Bar chart -->
+        <div class="card" style="padding: 22px;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 18px;">
+            <h2 class="h2">Movimento por mês</h2>
+            <div style="display: flex; gap: 16px; font-size: 12px; color: #6b6862;">
+              <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: #2f8f5b;"></span>Entradas</span>
+              <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: #c0553b;"></span>Saídas</span>
+              <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: #cf9436;"></span>Imprevistos</span>
+            </div>
+          </div>
+          <div id="barChart" style="display: flex; align-items: stretch; gap: 2px;"></div>
+        </div>
+
+        <!-- Line chart -->
+        <div class="card" style="padding: 22px;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 16px;">
+            <h2 class="h2">Resultado acumulado</h2>
+            <span style="font-size: 12px; color: #6b6862;">Lucro / prejuízo acumulado ao longo do ano</span>
+          </div>
+          <svg id="lineChart" viewBox="0 0 720 220" style="width: 100%; height: auto; display: block; overflow: visible;"></svg>
+          <div id="lineLabels" style="display: flex; gap: 2px; margin-top: 6px; padding-left: 40px; padding-right: 16px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="card" style="padding: 22px; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+        <h2 class="h2" id="tableTitle">Lançamentos</h2>
+        <span id="countStr" style="font-size: 13px; color: #6b6862;"></span>
+      </div>
+      <div id="tableArea"></div>
+    </section>
+
+    <p style="text-align: center; color: #a8a49a; font-size: 12px; margin: 4px 0 0;">Os dados ficam salvos na nuvem e são compartilhados com a família.</p>
+  </div>
+</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
