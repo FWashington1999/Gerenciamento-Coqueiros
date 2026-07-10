@@ -1,0 +1,10 @@
+# Padroniza as quebras de linha: usa LF dentro do repositório e
+# NÃO fica convertendo pra CRLF no Windows (silencia o aviso do Git).
+* text=auto eol=lf
+
+# Arquivos binários não devem sofrer conversão de linha.
+*.zip binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary

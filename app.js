@@ -1,11 +1,8 @@
-/* ============================================================
-   CONFIGURAÇÃO DO SUPABASE  —  preencha estes 3 valores
-   (veja o passo a passo no arquivo GUIA.md)
-   ============================================================ */
-var SUPABASE_URL      = 'https://SEU-PROJETO.supabase.co';   // URL do projeto
-var SUPABASE_ANON_KEY = 'SUA-CHAVE-ANON-AQUI';               // chave "anon public"
-var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta da família
-/* ============================================================ */
+//CONFIGURAÇÃO DO SUPABASE
+  
+var SUPABASE_URL      = 'https://gxgwjlbyjsyeutplfdvi.supabase.co';   
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Z3dqbGJ5anN5ZXV0cGxmZHZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2OTY2OTYsImV4cCI6MjA5OTI3MjY5Nn0.ZMFrKrki78fW6IUcoh2TDSMOezbRo87hn_8wOWY8Ydw';              
+var FAMILY_EMAIL      = 'familia@coqueiros.com';            
 
 (function () {
   "use strict";
@@ -47,14 +44,19 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
       desc: row.description || '',
       category: row.category || '',
       payment: row.payment || '',
+      receiptPath: row.receipt_path || '',
     };
   }
   function toDb(tx) {
     return {
       id: tx.id, type: tx.type, value: tx.value, date: tx.date,
       qty: tx.qty, description: tx.desc, category: tx.category, payment: tx.payment,
+      receipt_path: tx.receiptPath || null,
     };
   }
+
+  var RECEIPT_BUCKET = 'comprovantes';
+  var pendingReceipt = null; // arquivo PDF selecionado, aguardando envio
 
   function emptyForm(type) {
     return {
@@ -107,6 +109,14 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
     var value = parseValue(f.value);
     if (!value || value <= 0) { setError('Informe um valor maior que zero.'); return; }
     if (!f.date) { setError('Informe a data.'); return; }
+
+    var file = pendingReceipt;
+    if (file) {
+      if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { setError('O comprovante precisa ser um arquivo PDF.'); return; }
+      if (file.size > 10 * 1024 * 1024) { setError('O PDF é muito grande (máximo 10 MB).'); return; }
+      if (!db) { setError('Para anexar comprovantes é preciso configurar o Supabase (veja o GUIA.md).'); return; }
+    }
+
     var tx = {
       id: Date.now() + Math.floor(Math.random() * 1000),
       type: f.type,
@@ -116,31 +126,74 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
       desc: f.desc.trim() || '(sem descrição)',
       category: f.category.trim(),
       payment: f.payment,
+      receiptPath: '',
     };
-    // otimista: mostra na hora
-    state.transactions = [tx].concat(state.transactions);
-    saveCache(state.transactions);
-    state.year = new Date(f.date + 'T00:00:00').getFullYear();
-    state.form = Object.assign(emptyForm(f.type), { date: f.date });
-    state.error = '';
-    render();
 
-    if (!db) return;
-    db.from('transactions').insert(toDb(tx)).then(function (res) {
-      if (res.error) {
-        // desfaz se falhou
-        state.transactions = state.transactions.filter(function (t) { return t.id !== tx.id; });
-        saveCache(state.transactions);
-        showStatus('Não foi possível salvar na nuvem: ' + res.error.message, 'error');
-        render();
-      } else {
-        showStatus('');
-      }
+    var finish = function () {
+      state.transactions = [tx].concat(state.transactions);
+      saveCache(state.transactions);
+      state.year = new Date(f.date + 'T00:00:00').getFullYear();
+      state.form = Object.assign(emptyForm(f.type), { date: f.date });
+      state.error = '';
+      clearReceipt();
+      render();
+      showStatus('');
+    };
+
+    // Sem banco (modo local/preview): só mostra na tela.
+    if (!db) { finish(); return; }
+
+    var btn = document.getElementById('addBtn');
+    btn.disabled = true;
+    btn.textContent = file ? 'Enviando comprovante…' : 'Salvando…';
+    var done = function (ok, msg) {
+      btn.disabled = false;
+      btn.textContent = 'Adicionar lançamento';
+      if (!ok) setError(msg || 'Não foi possível salvar.');
+    };
+    var doInsert = function () {
+      db.from('transactions').insert(toDb(tx)).then(function (res) {
+        if (res.error) { done(false, 'Não foi possível salvar na nuvem: ' + res.error.message); }
+        else { done(true); finish(); }
+      });
+    };
+
+    if (file) {
+      var path = tx.id + '.pdf';
+      db.storage.from(RECEIPT_BUCKET).upload(path, file, { contentType: 'application/pdf', upsert: true }).then(function (res) {
+        if (res.error) { done(false, 'Não foi possível enviar o PDF: ' + res.error.message); return; }
+        tx.receiptPath = (res.data && res.data.path) || path;
+        doInsert();
+      });
+    } else {
+      doInsert();
+    }
+  }
+
+  // abre o comprovante num link temporário e seguro (válido por 2 min)
+  function openReceipt(path) {
+    if (!db || !path) return;
+    db.storage.from(RECEIPT_BUCKET).createSignedUrl(path, 120).then(function (res) {
+      if (res.error || !res.data) { showStatus('Não foi possível abrir o comprovante.', 'error'); return; }
+      window.open(res.data.signedUrl, '_blank');
     });
+  }
+
+  function clearReceipt() {
+    pendingReceipt = null;
+    var input = document.getElementById('fReceipt');
+    if (input) input.value = '';
+    var label = document.getElementById('fReceiptLabel');
+    var name = document.getElementById('fReceiptName');
+    var clr = document.getElementById('fReceiptClear');
+    if (label) label.classList.remove('has-file');
+    if (name) name.textContent = 'Escolher arquivo PDF…';
+    if (clr) clr.style.display = 'none';
   }
 
   function deleteTx(id) {
     var backup = state.transactions.slice();
+    var removed = state.transactions.filter(function (t) { return t.id === id; })[0];
     state.transactions = state.transactions.filter(function (t) { return t.id !== id; });
     saveCache(state.transactions);
     render();
@@ -152,6 +205,8 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
         saveCache(state.transactions);
         showStatus('Não foi possível remover na nuvem: ' + res.error.message, 'error');
         render();
+      } else if (removed && removed.receiptPath) {
+        db.storage.from(RECEIPT_BUCKET).remove([removed.receiptPath]);
       }
     });
   }
@@ -170,7 +225,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
       return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
     var money = function (n) { return Number(n).toFixed(2).replace('.', ','); };
-    var header = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Quantidade', 'Pagamento', 'Entrada', 'Saída', 'Imprevisto'];
+    var header = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Quantidade', 'Pagamento', 'Comprovante', 'Entrada', 'Saída', 'Imprevisto'];
     var lines = [header.join(';')];
     var te = 0, ts = 0, ti = 0;
     rows.forEach(function (t) {
@@ -185,14 +240,15 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
         d[2] + '/' + d[1] + '/' + d[0],
         labels[t.type] || t.type,
         esc(t.desc), esc(t.category), t.qty || '', esc(t.payment),
+        t.receiptPath ? 'Sim' : '',
         ent === '' ? '' : money(ent),
         sai === '' ? '' : money(sai),
         imp === '' ? '' : money(imp),
       ].join(';'));
     });
     lines.push('');
-    lines.push(['TOTAIS', '', '', '', '', '', money(te), money(ts), money(ti)].join(';'));
-    lines.push(['RESULTADO', '', '', '', '', '', money(te - ts - ti), '', ''].join(';'));
+    lines.push(['TOTAIS', '', '', '', '', '', '', money(te), money(ts), money(ti)].join(';'));
+    lines.push(['RESULTADO', '', '', '', '', '', '', money(te - ts - ti), '', ''].join(';'));
     var csv = '﻿' + lines.join('\r\n');
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
@@ -257,6 +313,13 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
     var maxVal = Math.max.apply(null, [1].concat(months.map(function (m) {
       return Math.max(m.entrada, m.saida, m.imprevisto);
     })));
+    // formato curto para os eixos (ex.: 12500 -> "12,5k", 2000000 -> "2M")
+    var fmtShort = function (n) {
+      var a = Math.abs(n);
+      if (a >= 1000000) return (n / 1000000).toFixed(1).replace('.0', '').replace('.', ',') + 'M';
+      if (a >= 1000) return (n / 1000).toFixed(1).replace('.0', '').replace('.', ',') + 'k';
+      return String(Math.round(n));
+    };
     var bar = function (v, color) {
       return styleStr({
         width: '9px',
@@ -267,7 +330,11 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
         transition: 'height 0.35s ease',
       });
     };
-    document.getElementById('barChart').innerHTML = months.map(function (m) {
+    var barTicks = [1, 0.75, 0.5, 0.25, 0].map(function (r) { return fmtShort(maxVal * r); });
+    var gridlines = [0, 25, 50, 75, 100].map(function (p) {
+      return '<div style="position: absolute; left: 0; right: 0; bottom: ' + p + '%; border-top: 1px solid #f0eee7;"></div>';
+    }).join('');
+    var monthsHtml = months.map(function (m) {
       return '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">' +
         '<div style="height: 200px; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 3px;">' +
         '<div style="' + bar(m.entrada, C.entrada) + '"></div>' +
@@ -277,6 +344,16 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
         '<div style="font-size: 11px; color: #8a867c; font-weight: 500;">' + m.name + '</div>' +
         '</div>';
     }).join('');
+    document.getElementById('barChart').innerHTML =
+      '<div style="flex: 1; display: flex; gap: 8px; align-items: flex-start;">' +
+        '<div style="height: 200px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: \'IBM Plex Mono\', monospace; font-size: 10px; color: #a8a49a;">' +
+          barTicks.map(function (t) { return '<span>' + t + '</span>'; }).join('') +
+        '</div>' +
+        '<div style="flex: 1; position: relative;">' +
+          '<div style="position: absolute; left: 0; right: 0; top: 0; height: 200px; pointer-events: none;">' + gridlines + '</div>' +
+          '<div style="position: relative; display: flex; align-items: stretch; gap: 2px;">' + monthsHtml + '</div>' +
+        '</div>' +
+      '</div>';
 
     var cum = 0;
     var cumArr = months.map(function (m) { cum += m.entrada - m.saida - m.imprevisto; return cum; });
@@ -294,13 +371,30 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
       linePts.map(function (p) { return 'L' + p.x + ',' + p.y; }).join(' ') +
       ' L' + linePts[linePts.length - 1].x + ',' + zeroY + ' Z';
 
+    // eixo Y com valores + linhas de grade
+    var yTicks = [];
+    for (var yi = 0; yi <= 4; yi++) { yTicks.push(vmin + (vmax - vmin) * yi / 4); }
+    var yAxis = yTicks.map(function (v) {
+      var y = +yOf(v).toFixed(1);
+      return '<line x1="40" y1="' + y + '" x2="704" y2="' + y + '" stroke="#f0eee7" stroke-width="1"></line>' +
+        '<text x="34" y="' + (y + 3) + '" text-anchor="end" font-size="10" fill="#a8a49a" font-family="monospace">' + fmtShort(v) + '</text>';
+    }).join('');
+    // rótulo do valor acumulado atual (último ponto)
+    var lastP = linePts[linePts.length - 1];
+    var lastVal = cumArr[cumArr.length - 1];
+    var lastLabel = tx.length
+      ? '<text x="' + lastP.x + '" y="' + (lastP.y - 10) + '" text-anchor="end" font-size="12" font-weight="600" fill="#26251f" font-family="monospace">' + (lastVal < 0 ? '-' : '') + 'R$ ' + fmtShort(Math.abs(lastVal)) + '</text>'
+      : '';
+
     document.getElementById('lineChart').innerHTML =
-      '<line x1="40" y1="' + zeroY + '" x2="704" y2="' + zeroY + '" stroke="#d9d5cc" stroke-width="1" stroke-dasharray="4 4"></line>' +
+      yAxis +
+      '<line x1="40" y1="' + zeroY + '" x2="704" y2="' + zeroY + '" stroke="#c7c2b6" stroke-width="1" stroke-dasharray="4 4"></line>' +
       '<path d="' + areaPath + '" fill="#26251f" fill-opacity="0.05"></path>' +
       '<polyline points="' + linePoints + '" fill="none" stroke="#26251f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>' +
       linePts.map(function (p) {
         return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3.5" fill="#fff" stroke="#26251f" stroke-width="2"></circle>';
-      }).join('');
+      }).join('') +
+      lastLabel;
 
     document.getElementById('lineLabels').innerHTML = months.map(function (m) {
       return '<div style="flex: 1; text-align: center; font-size: 11px; color: #8a867c;">' + m.name + '</div>';
@@ -336,7 +430,9 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
           '<td style="padding: 12px 8px; font-size: 13px; font-family: \'IBM Plex Mono\', monospace; color: #6b6862; text-align: right;">' + (t.qty ? esc(t.qty) : '—') + '</td>' +
           '<td style="padding: 12px 8px; font-size: 13px; color: #6b6862;">' + esc(t.payment) + '</td>' +
           '<td style="padding: 12px 8px; font-size: 14px; font-family: \'IBM Plex Mono\', monospace; font-weight: 600; text-align: right; white-space: nowrap; color: ' + info.color + ';">' + sign + fmt(t.value) + '</td>' +
-          '<td style="padding: 12px 8px; text-align: right;"><button data-del="' + t.id + '" title="Remover" style="border: none; background: none; color: #b6b2a7; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; line-height: 1;">✕</button></td>' +
+          '<td style="padding: 12px 8px; text-align: right; white-space: nowrap;">' +
+          (t.receiptPath ? '<button class="receipt-link" data-receipt="' + esc(t.receiptPath) + '" title="Ver comprovante (PDF)">📎</button>' : '') +
+          '<button data-del="' + t.id + '" title="Remover" style="border: none; background: none; color: #b6b2a7; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; line-height: 1;">✕</button></td>' +
           '</tr>';
       }).join('');
       area.innerHTML = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; min-width: 720px;">' +
@@ -396,9 +492,24 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';             // e-mail da conta 
   document.getElementById('fPayment').addEventListener('change', function (e) { setField('payment', e.target.value); });
   document.getElementById('addBtn').addEventListener('click', addTx);
   document.getElementById('tableArea').addEventListener('click', function (e) {
+    var r = e.target.closest('button[data-receipt]');
+    if (r) { openReceipt(r.getAttribute('data-receipt')); return; }
     var b = e.target.closest('button[data-del]');
     if (b) deleteTx(Number(b.getAttribute('data-del')));
   });
+
+  // campo de comprovante (PDF)
+  document.getElementById('fReceipt').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) { clearReceipt(); return; }
+    pendingReceipt = file;
+    document.getElementById('fReceiptName').textContent = file.name;
+    document.getElementById('fReceiptLabel').classList.add('has-file');
+    document.getElementById('fReceiptClear').style.display = 'inline-block';
+    state.error = '';
+    document.getElementById('formError').style.display = 'none';
+  });
+  document.getElementById('fReceiptClear').addEventListener('click', clearReceipt);
   document.getElementById('addBtn').addEventListener('mouseenter', function () { this.style.background = '#3a3830'; });
   document.getElementById('addBtn').addEventListener('mouseleave', function () { this.style.background = '#26251f'; });
   document.getElementById('exportBtn').addEventListener('mouseenter', function () { if (!this.disabled) this.style.borderColor = '#26251f'; });
