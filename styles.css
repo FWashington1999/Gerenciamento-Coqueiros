@@ -53,7 +53,7 @@ select:focus {
 }
 
 .mono {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: inherit;
 }
 
 .card {
@@ -72,7 +72,6 @@ select:focus {
 
 .kpi-value {
     margin-top: 10px;
-    font-family: 'IBM Plex Mono', monospace;
     font-size: clamp(20px, 2.4vw, 25px);
     font-weight: 600;
 }

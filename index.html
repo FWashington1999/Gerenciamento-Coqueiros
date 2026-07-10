@@ -6,7 +6,7 @@
 <title>Gestão da Plantação — Coqueiros</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -91,16 +91,16 @@
         <div style="display: flex; flex-direction: column; gap: 14px;">
           <div>
             <label class="field-label">Valor (R$)</label>
-            <input id="fValue" inputmode="decimal" placeholder="0,00" style="width: 100%; padding: 12px; border: 1px solid #d9d5cc; border-radius: 8px; font-size: 20px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; background: #fff;">
+            <input id="fValue" inputmode="decimal" placeholder="0,00" style="width: 100%; padding: 12px; border: 1px solid #d9d5cc; border-radius: 8px; font-size: 20px; font-weight: 600; background: #fff;">
           </div>
-          <div style="display: flex; gap: 12px;">
-            <div style="flex: 1;">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="flex: 1 1 180px; min-width: 150px;">
               <label class="field-label">Data</label>
               <input id="fDate" type="date" class="input" style="padding: 10px 12px;">
             </div>
-            <div style="width: 40%;">
+            <div style="flex: 1 1 140px; min-width: 120px;">
               <label class="field-label">Qtd (cocos)</label>
-              <input id="fQty" inputmode="numeric" placeholder="—" class="input mono" style="padding: 10px 12px;">
+              <input id="fQty" inputmode="numeric" placeholder="—" class="input" style="padding: 10px 12px;">
             </div>
           </div>
           <div>

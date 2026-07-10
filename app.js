@@ -348,7 +348,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
     }).join('');
     document.getElementById('barChart').innerHTML =
       '<div style="flex: 1; display: flex; gap: 8px; align-items: flex-start;">' +
-        '<div style="height: 200px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: \'IBM Plex Mono\', monospace; font-size: 10px; color: #a8a49a;">' +
+        '<div style="height: 200px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: inherit; font-size: 10px; color: #a8a49a;">' +
           barTicks.map(function (t) { return '<span>' + t + '</span>'; }).join('') +
         '</div>' +
         '<div style="flex: 1; position: relative;">' +
@@ -379,13 +379,13 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
     var yAxis = yTicks.map(function (v) {
       var y = +yOf(v).toFixed(1);
       return '<line x1="40" y1="' + y + '" x2="704" y2="' + y + '" stroke="#f0eee7" stroke-width="1"></line>' +
-        '<text x="34" y="' + (y + 3) + '" text-anchor="end" font-size="10" fill="#a8a49a" font-family="monospace">' + fmtShort(v) + '</text>';
+        '<text x="34" y="' + (y + 3) + '" text-anchor="end" font-size="10" fill="#a8a49a">' + fmtShort(v) + '</text>';
     }).join('');
     // rótulo do valor acumulado atual (último ponto)
     var lastP = linePts[linePts.length - 1];
     var lastVal = cumArr[cumArr.length - 1];
     var lastLabel = tx.length
-      ? '<text x="' + lastP.x + '" y="' + (lastP.y - 10) + '" text-anchor="end" font-size="12" font-weight="600" fill="#26251f" font-family="monospace">' + (lastVal < 0 ? '-' : '') + 'R$ ' + fmtShort(Math.abs(lastVal)) + '</text>'
+      ? '<text x="' + lastP.x + '" y="' + (lastP.y - 10) + '" text-anchor="end" font-size="12" font-weight="600" fill="#26251f">' + (lastVal < 0 ? '-' : '') + 'R$ ' + fmtShort(Math.abs(lastVal)) + '</text>'
       : '';
 
     document.getElementById('lineChart').innerHTML =
@@ -425,13 +425,13 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
         var sign = t.type === 'entrada' ? '+ ' : '– ';
         var badge = styleStr({ display: 'inline-block', fontSize: '12px', fontWeight: 600, color: info.color, background: info.bg, padding: '3px 9px', borderRadius: '20px', whiteSpace: 'nowrap' });
         return '<tr style="border-bottom: 1px solid #f0eee7;">' +
-          '<td style="padding: 12px 8px; font-size: 13px; font-family: \'IBM Plex Mono\', monospace; color: #6b6862; white-space: nowrap;">' + d[2] + '/' + d[1] + '/' + d[0] + '</td>' +
+          '<td style="padding: 12px 8px; font-size: 13px; font-family: inherit; color: #6b6862; white-space: nowrap;">' + d[2] + '/' + d[1] + '/' + d[0] + '</td>' +
           '<td style="padding: 12px 8px;"><span style="' + badge + '">' + info.label + '</span></td>' +
           '<td style="padding: 12px 8px; font-size: 14px;">' + esc(t.desc) + '</td>' +
           '<td style="padding: 12px 8px; font-size: 13px; color: #6b6862;">' + esc(t.category || '—') + '</td>' +
-          '<td style="padding: 12px 8px; font-size: 13px; font-family: \'IBM Plex Mono\', monospace; color: #6b6862; text-align: right;">' + (t.qty ? esc(t.qty) : '—') + '</td>' +
+          '<td style="padding: 12px 8px; font-size: 13px; font-family: inherit; color: #6b6862; text-align: right;">' + (t.qty ? esc(t.qty) : '—') + '</td>' +
           '<td style="padding: 12px 8px; font-size: 13px; color: #6b6862;">' + esc(t.payment) + '</td>' +
-          '<td style="padding: 12px 8px; font-size: 14px; font-family: \'IBM Plex Mono\', monospace; font-weight: 600; text-align: right; white-space: nowrap; color: ' + info.color + ';">' + sign + fmt(t.value) + '</td>' +
+          '<td style="padding: 12px 8px; font-size: 14px; font-family: inherit; font-weight: 600; text-align: right; white-space: nowrap; color: ' + info.color + ';">' + sign + fmt(t.value) + '</td>' +
           '<td style="padding: 12px 8px; text-align: right; white-space: nowrap;">' +
           (t.receiptPath ? '<button class="receipt-link" data-receipt="' + esc(t.receiptPath) + '" title="Ver comprovante (PDF)">📎</button>' : '') +
           '<button data-del="' + t.id + '" title="Remover" style="border: none; background: none; color: #b6b2a7; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; line-height: 1;">✕</button></td>' +
