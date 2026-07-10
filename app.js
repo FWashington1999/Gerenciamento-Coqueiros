@@ -322,7 +322,9 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
     };
     var bar = function (v, color) {
       return styleStr({
-        width: '9px',
+        flex: '1 1 0',
+        maxWidth: '12px',
+        minWidth: '0',
         height: (v / maxVal * 100).toFixed(2) + '%',
         minHeight: v > 0 ? '3px' : '0px',
         background: color,
