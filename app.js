@@ -213,52 +213,91 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
 
   function setError(msg) { state.error = msg; render(); }
 
-  function exportCSV() {
+  function exportPDF() {
     var labels = { entrada: 'Entrada', saida: 'Saída', imprevisto: 'Imprevisto' };
+    var colors = { entrada: '#2f8f5b', saida: '#c0553b', imprevisto: '#cf9436' };
     var year = state.year;
     var rows = state.transactions
       .filter(function (t) { return new Date(t.date + 'T00:00:00').getFullYear() === year; })
       .slice()
       .sort(function (a, b) { return a.date.localeCompare(b.date) || a.id - b.id; });
-    var esc = function (v) {
-      var s = String(v == null ? '' : v);
-      return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    };
-    var money = function (n) { return Number(n).toFixed(2).replace('.', ','); };
-    var header = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Quantidade', 'Pagamento', 'Comprovante', 'Entrada', 'Saída', 'Imprevisto'];
-    var lines = [header.join(';')];
+
     var te = 0, ts = 0, ti = 0;
     rows.forEach(function (t) {
-      var d = t.date.split('-');
-      var ent = t.type === 'entrada' ? t.value : '';
-      var sai = t.type === 'saida' ? t.value : '';
-      var imp = t.type === 'imprevisto' ? t.value : '';
       if (t.type === 'entrada') te += t.value;
       else if (t.type === 'saida') ts += t.value;
       else ti += t.value;
-      lines.push([
-        d[2] + '/' + d[1] + '/' + d[0],
-        labels[t.type] || t.type,
-        esc(t.desc), esc(t.category), t.qty || '', esc(t.payment),
-        t.receiptPath ? 'Sim' : '',
-        ent === '' ? '' : money(ent),
-        sai === '' ? '' : money(sai),
-        imp === '' ? '' : money(imp),
-      ].join(';'));
     });
-    lines.push('');
-    lines.push(['TOTAIS', '', '', '', '', '', '', money(te), money(ts), money(ti)].join(';'));
-    lines.push(['RESULTADO', '', '', '', '', '', '', money(te - ts - ti), '', ''].join(';'));
-    var csv = '﻿' + lines.join('\r\n');
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'plantacao-coqueiros-' + year + '.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    var resultado = te - ts - ti;
+
+    var body = rows.map(function (t) {
+      var d = t.date.split('-');
+      var c = colors[t.type] || colors.entrada;
+      var sign = t.type === 'entrada' ? '+ ' : '– ';
+      return '<tr>' +
+        '<td>' + d[2] + '/' + d[1] + '/' + d[0] + '</td>' +
+        '<td><b style="color:' + c + '">' + (labels[t.type] || t.type) + '</b></td>' +
+        '<td>' + esc(t.desc) + (t.receiptPath ? ' <span class="clip">PDF</span>' : '') + '</td>' +
+        '<td>' + esc(t.category || '—') + '</td>' +
+        '<td class="r">' + (t.qty ? esc(t.qty) : '—') + '</td>' +
+        '<td>' + esc(t.payment) + '</td>' +
+        '<td class="r" style="color:' + c + ';font-weight:600;white-space:nowrap;">' + sign + fmt(t.value) + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var card = function (label, value, color) {
+      return '<div class="card"><div class="clabel">' + label + '</div><div class="cvalue" style="color:' + color + '">' + value + '</div></div>';
+    };
+    var resStr = (resultado < 0 ? '– ' : '') + fmt(Math.abs(resultado));
+    var cards =
+      card('Entradas', fmt(te), colors.entrada) +
+      card('Saídas', fmt(ts), colors.saida) +
+      card('Imprevistos', fmt(ti), colors.imprevisto) +
+      card('Resultado do ano', resStr, resultado >= 0 ? '#2f8f5b' : '#c0553b');
+
+    var table = rows.length
+      ? '<table><thead><tr>' +
+        '<th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th class="r">Qtd</th><th>Pagamento</th><th class="r">Valor</th>' +
+        '</tr></thead><tbody>' + body + '</tbody>' +
+        '<tfoot><tr><td colspan="6" class="r">Resultado do ano</td><td class="r" style="color:' + (resultado >= 0 ? '#2f8f5b' : '#c0553b') + '">' + resStr + '</td></tr></tfoot>' +
+        '</table>'
+      : '<p class="empty">Nenhum lançamento em ' + year + '.</p>';
+
+    var logoUrl = location.origin + location.pathname.replace(/[^/]*$/, '') + 'logo.png';
+    var gerado = new Date().toLocaleDateString('pt-BR');
+
+    var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">' +
+      '<title>Plantacao Coqueiros - ' + year + '</title><style>' +
+      '*{box-sizing:border-box;} body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#26251f;background:#fff;margin:0;padding:26px;-webkit-print-color-adjust:exact;print-color-adjust:exact;} ' +
+      '.report{max-width:920px;margin:0 auto;} ' +
+      'header{display:flex;align-items:center;gap:14px;border-bottom:2px solid #26251f;padding-bottom:16px;margin-bottom:20px;} ' +
+      '.logo{width:56px;height:56px;object-fit:contain;} h1{margin:0;font-size:22px;} header p{margin:4px 0 0;color:#6b6862;font-size:14px;} ' +
+      '.cards{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;} ' +
+      '.card{flex:1;min-width:150px;border:1px solid #e6e3dc;border-radius:10px;padding:12px 14px;} ' +
+      '.clabel{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b6862;font-weight:600;} ' +
+      '.cvalue{font-size:18px;font-weight:700;margin-top:6px;} ' +
+      'table{width:100%;border-collapse:collapse;font-size:12.5px;} ' +
+      'th{text-align:left;border-bottom:1.5px solid #26251f;padding:8px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#6b6862;} ' +
+      'td{padding:8px 6px;border-bottom:1px solid #efece5;} .r{text-align:right;} ' +
+      'tfoot td{font-weight:700;border-top:2px solid #26251f;border-bottom:none;padding-top:10px;} ' +
+      '.clip{font-size:9px;color:#2f6f8f;border:1px solid #cfe0e8;border-radius:4px;padding:1px 4px;} ' +
+      '.empty{text-align:center;color:#8a867c;padding:40px 0;} ' +
+      'footer{margin-top:22px;color:#a8a49a;font-size:11px;text-align:center;} ' +
+      '@page{margin:14mm;} @media print{body{padding:0;}}' +
+      '</style></head><body><div class="report">' +
+      '<header><img class="logo" src="' + logoUrl + '"><div><h1>Gestão da Plantação</h1><p>Relatório de ' + year + '</p></div></header>' +
+      '<section class="cards">' + cards + '</section>' +
+      table +
+      '<footer>Gerado em ' + gerado + ' · Gestão da Plantação — Coqueiros</footer>' +
+      '</div>' +
+      '<script>window.onload=function(){var i=document.querySelector("img");function p(){setTimeout(function(){window.focus();window.print();},200);}if(i&&!i.complete){i.onload=p;i.onerror=p;}else{p();}};<\/script>' +
+      '</body></html>';
+
+    var w = window.open('', '_blank');
+    if (!w) { showStatus('Libere os pop-ups do navegador para exportar o PDF.', 'error'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   }
 
   // ---------- helpers ----------
@@ -482,7 +521,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
     render();
   });
   document.getElementById('exportBtn').addEventListener('click', function () {
-    if (!this.disabled) exportCSV();
+    if (!this.disabled) exportPDF();
   });
   document.querySelectorAll('.tab').forEach(function (btn) {
     btn.addEventListener('click', function () { setField('type', btn.getAttribute('data-type')); render(); });

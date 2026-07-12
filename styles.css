@@ -147,6 +147,16 @@ select:focus {
     color: #26251f;
 }
 
+#logoutBtn {
+    color: #c0553b;
+    font-weight: 600;
+}
+
+#logoutBtn:hover {
+    background: #f9e9e4;
+    color: #a8442b;
+}
+
 /* Campo de upload de comprovante (PDF) */
 .file-drop {
     display: flex;
