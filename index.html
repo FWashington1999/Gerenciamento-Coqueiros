@@ -4,9 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão da Plantação — Coqueiros</title>
+<link rel="icon" type="image/png" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -14,14 +16,47 @@
 
 <!-- ===== Tela de login ===== -->
 <div id="loginOverlay">
-  <div class="login-card">
-    <div style="width: 44px; height: 44px; border-radius: 12px; background: #26251f; color: #f4f2ec; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; margin: 0 auto 16px;">C</div>
-    <h1 style="margin: 0 0 4px; font-size: 20px; font-weight: 700;">Gestão da Plantação</h1>
-    <p style="margin: 0 0 20px; color: #6b6862; font-size: 14px;">Digite a senha da família para entrar</p>
-    <input id="loginPassword" type="password" placeholder="Senha" class="input" style="padding: 12px; text-align: center; margin-bottom: 12px;">
-    <div id="loginError" style="display: none; background: #fbeae5; color: #a8442b; font-size: 13px; padding: 9px 12px; border-radius: 8px; margin-bottom: 12px;"></div>
-    <button id="loginBtn" style="width: 100%; padding: 12px; border: none; border-radius: 9px; background: #26251f; color: #f4f2ec; font-size: 15px; font-weight: 600; cursor: pointer;">Entrar</button>
-    <p id="loginConfigNote" style="display: none; margin: 16px 0 0; font-size: 12px; color: #a8442b;">⚠️ O Supabase ainda não foi configurado. Abra o <b>GUIA.md</b> e preencha os dados no topo do arquivo <b>app.js</b>.</p>
+
+  <!-- Painel da marca -->
+  <div class="login-brand">
+    <div class="brand-blob brand-blob-1"></div>
+    <div class="brand-blob brand-blob-2"></div>
+
+    <div class="brand-badge">
+      <img src="logo.png" alt="">
+      Gestão da Plantação
+    </div>
+
+    <div class="brand-hero">
+      <img class="brand-hero-logo" src="logo.png" alt="Coqueiros">
+      <h1 class="brand-title">Gestão da Plantação</h1>
+      <p class="brand-sub">Acompanhe as entradas, gastos e imprevistos dos coqueiros.</p>
+    </div>
+  </div>
+
+  <!-- Painel do formulário -->
+  <div class="login-form-panel">
+    <div class="login-form-inner">
+      <img class="login-mobile-logo" src="logo.png" alt="Coqueiros">
+      <div class="login-h1">Bem-vindo de volta</div>
+      <p class="login-p">Digite a senha da família para entrar.</p>
+
+      <div>
+        <span class="login-label">Senha da família</span>
+        <span class="login-input-wrap">
+          <input id="loginPassword" class="login-input" type="password" placeholder="••••••••••••" autocomplete="current-password">
+          <button type="button" id="loginToggle" class="login-eye" aria-label="Mostrar senha" title="Mostrar senha"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+        </span>
+      </div>
+
+      <div id="loginError" class="login-error" style="display: none;"></div>
+
+      <button id="loginBtn" class="login-submit">Entrar</button>
+
+      <p id="loginConfigNote" class="login-config-note" style="display: none;">⚠️ O Supabase ainda não foi configurado. Abra o <b>GUIA.md</b> e preencha os dados no topo do arquivo <b>app.js</b>.</p>
+
+      <p class="login-foot">Acesso restrito à família.</p>
+    </div>
   </div>
 </div>
 
@@ -34,8 +69,8 @@
     <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
       <div>
         <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 34px; height: 34px; border-radius: 9px; background: #26251f; color: #f4f2ec; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">C</div>
-          <h1 style="margin: 0; font-size: clamp(20px, 3vw, 26px); font-weight: 700; letter-spacing: -0.01em;">Gestão da Plantação</h1>
+          <img src="logo.png" alt="Coqueiros" style="width: 40px; height: 40px; object-fit: contain; display: block;">
+          <h1 style="margin: 0; font-size: clamp(20px, 3vw, 26px); font-weight: 700; letter-spacing: -0.01em;">Controle Financeiro</h1>
         </div>
         <p style="margin: 8px 0 0 46px; color: #6b6862; font-size: 14px;">Controle de entradas, saídas e imprevistos dos coqueiros</p>
       </div>
