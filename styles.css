@@ -197,10 +197,12 @@ select:focus {
     background: none;
     color: #2f6f8f;
     cursor: pointer;
-    font-size: 14px;
     padding: 4px 6px;
     border-radius: 6px;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
 }
 
 .receipt-link:hover {
@@ -220,7 +222,7 @@ select:focus {
     display: grid;
     grid-template-columns: 1.05fr 1fr;
     background: #f2efe6;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
     overflow-y: auto;
 }
 
@@ -275,7 +277,7 @@ select:focus {
     filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.28));
 }
 .brand-title {
-    font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
     font-weight: 700;
     font-size: 40px;
     line-height: 1.08;
@@ -303,7 +305,7 @@ select:focus {
 .login-mobile-logo { display: none; }
 
 .login-h1 {
-    font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
     font-weight: 700;
     font-size: 28px;
     color: #221f1a;

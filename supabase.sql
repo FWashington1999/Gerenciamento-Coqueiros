@@ -8,12 +8,14 @@ create table if not exists public.transactions (
   description  text,                  -- descrição
   category     text,                  -- categoria
   payment      text,                  -- forma de pagamento
+  unit_value   numeric,               -- valor por coco (R$) (opcional)
   receipt_path text,                  -- caminho do comprovante em PDF (opcional)
   created_at   timestamptz default now()
 );
 
--- (se a tabela já existia sem a coluna, garante que ela exista)
+-- (se a tabela já existia sem as colunas, garante que elas existam)
 alter table public.transactions add column if not exists receipt_path text;
+alter table public.transactions add column if not exists unit_value numeric;
 
 -- Liga a "trava de segurança" (Row Level Security).
 -- Sem isso, qualquer um com a chave pública leria os dados.

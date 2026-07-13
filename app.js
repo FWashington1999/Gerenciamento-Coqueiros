@@ -41,6 +41,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
       value: Number(row.value),
       date: row.date,
       qty: row.qty || '',
+      unitValue: row.unit_value != null ? Number(row.unit_value) : null,
       desc: row.description || '',
       category: row.category || '',
       payment: row.payment || '',
@@ -51,6 +52,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
     return {
       id: tx.id, type: tx.type, value: tx.value, date: tx.date,
       qty: tx.qty, description: tx.desc, category: tx.category, payment: tx.payment,
+      unit_value: (tx.unitValue != null && tx.unitValue !== '') ? tx.unitValue : null,
       receipt_path: tx.receiptPath || null,
     };
   }
@@ -64,10 +66,23 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
       value: '',
       date: new Date().toISOString().slice(0, 10),
       qty: '',
+      unitValue: '',
       desc: '',
       category: '',
       payment: 'Pix',
     };
+  }
+
+  // calcula o total automaticamente quando há Qtd e Valor por coco
+  function recalcTotal() {
+    var q = parseValue(state.form.qty);
+    var u = parseValue(state.form.unitValue);
+    if (q > 0 && u > 0) {
+      var str = (q * u).toFixed(2).replace('.', ',');
+      state.form.value = str;
+      var el = document.getElementById('fValue');
+      if (el) el.value = str;
+    }
   }
   function parseValue(s) {
     s = String(s).trim();
@@ -117,12 +132,14 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
       if (!db) { setError('Para anexar comprovantes é preciso configurar o Supabase (veja o GUIA.md).'); return; }
     }
 
+    var unitValue = parseValue(f.unitValue);
     var tx = {
       id: Date.now() + Math.floor(Math.random() * 1000),
       type: f.type,
       value: value,
       date: f.date,
       qty: f.qty ? String(f.qty).replace(/[^0-9]/g, '') : '',
+      unitValue: unitValue > 0 ? unitValue : null,
       desc: f.desc.trim() || '(sem descrição)',
       category: f.category.trim(),
       payment: f.payment,
@@ -240,6 +257,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
         '<td>' + esc(t.desc) + (t.receiptPath ? ' <span class="clip">PDF</span>' : '') + '</td>' +
         '<td>' + esc(t.category || '—') + '</td>' +
         '<td class="r">' + (t.qty ? esc(t.qty) : '—') + '</td>' +
+        '<td class="r">' + (t.unitValue != null ? fmt(t.unitValue) : '—') + '</td>' +
         '<td>' + esc(t.payment) + '</td>' +
         '<td class="r" style="color:' + c + ';font-weight:600;white-space:nowrap;">' + sign + fmt(t.value) + '</td>' +
         '</tr>';
@@ -257,9 +275,9 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
 
     var table = rows.length
       ? '<table><thead><tr>' +
-        '<th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th class="r">Qtd</th><th>Pagamento</th><th class="r">Valor</th>' +
+        '<th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th class="r">Qtd</th><th class="r">R$/coco</th><th>Pagamento</th><th class="r">Valor</th>' +
         '</tr></thead><tbody>' + body + '</tbody>' +
-        '<tfoot><tr><td colspan="6" class="r">Resultado do ano</td><td class="r" style="color:' + (resultado >= 0 ? '#2f8f5b' : '#c0553b') + '">' + resStr + '</td></tr></tfoot>' +
+        '<tfoot><tr><td colspan="7" class="r">Resultado do ano</td><td class="r" style="color:' + (resultado >= 0 ? '#2f8f5b' : '#c0553b') + '">' + resStr + '</td></tr></tfoot>' +
         '</table>'
       : '<p class="empty">Nenhum lançamento em ' + year + '.</p>';
 
@@ -469,17 +487,18 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
           '<td style="padding: 12px 8px; font-size: 14px;">' + esc(t.desc) + '</td>' +
           '<td style="padding: 12px 8px; font-size: 13px; color: #6b6862;">' + esc(t.category || '—') + '</td>' +
           '<td style="padding: 12px 8px; font-size: 13px; font-family: inherit; color: #6b6862; text-align: right;">' + (t.qty ? esc(t.qty) : '—') + '</td>' +
+          '<td style="padding: 12px 8px; font-size: 13px; color: #6b6862; text-align: right; white-space: nowrap;">' + (t.unitValue != null ? fmt(t.unitValue) : '—') + '</td>' +
           '<td style="padding: 12px 8px; font-size: 13px; color: #6b6862;">' + esc(t.payment) + '</td>' +
           '<td style="padding: 12px 8px; font-size: 14px; font-family: inherit; font-weight: 600; text-align: right; white-space: nowrap; color: ' + info.color + ';">' + sign + fmt(t.value) + '</td>' +
           '<td style="padding: 12px 8px; text-align: right; white-space: nowrap;">' +
-          (t.receiptPath ? '<button class="receipt-link" data-receipt="' + esc(t.receiptPath) + '" title="Ver comprovante (PDF)">📎</button>' : '') +
+          (t.receiptPath ? '<button class="receipt-link" data-receipt="' + esc(t.receiptPath) + '" title="Ver comprovante (PDF)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg></button>' : '') +
           '<button data-del="' + t.id + '" title="Remover" style="border: none; background: none; color: #b6b2a7; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; line-height: 1;">✕</button></td>' +
           '</tr>';
       }).join('');
-      area.innerHTML = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; min-width: 720px;">' +
+      area.innerHTML = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; min-width: 800px;">' +
         '<thead><tr style="text-align: left; border-bottom: 1px solid #e6e3dc;">' +
         '<th class="th">Data</th><th class="th">Tipo</th><th class="th">Descrição</th><th class="th">Categoria</th>' +
-        '<th class="th" style="text-align: right;">Qtd</th><th class="th">Pagamento</th><th class="th" style="text-align: right;">Valor</th><th style="padding: 10px 8px;"></th>' +
+        '<th class="th" style="text-align: right;">Qtd</th><th class="th" style="text-align: right;">R$/coco</th><th class="th">Pagamento</th><th class="th" style="text-align: right;">Valor</th><th style="padding: 10px 8px;"></th>' +
         '</tr></thead><tbody>' + body + '</tbody></table></div>';
     }
 
@@ -504,6 +523,7 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
     document.getElementById('fValue').value = state.form.value;
     document.getElementById('fDate').value = state.form.date;
     document.getElementById('fQty').value = state.form.qty;
+    document.getElementById('fUnitValue').value = state.form.unitValue;
     document.getElementById('fDesc').value = state.form.desc;
     document.getElementById('fCategory').value = state.form.category;
     document.getElementById('fPayment').value = state.form.payment;
@@ -526,9 +546,12 @@ var FAMILY_EMAIL      = 'familia@coqueiros.com';
   document.querySelectorAll('.tab').forEach(function (btn) {
     btn.addEventListener('click', function () { setField('type', btn.getAttribute('data-type')); render(); });
   });
-  var bind = [['fValue', 'value'], ['fDate', 'date'], ['fQty', 'qty'], ['fDesc', 'desc'], ['fCategory', 'category']];
+  var bind = [['fValue', 'value'], ['fDate', 'date'], ['fQty', 'qty'], ['fUnitValue', 'unitValue'], ['fDesc', 'desc'], ['fCategory', 'category']];
   bind.forEach(function (pair) {
-    document.getElementById(pair[0]).addEventListener('input', function (e) { setField(pair[1], e.target.value); });
+    document.getElementById(pair[0]).addEventListener('input', function (e) {
+      setField(pair[1], e.target.value);
+      if (pair[1] === 'qty' || pair[1] === 'unitValue') recalcTotal();
+    });
   });
   document.getElementById('fPayment').addEventListener('change', function (e) { setField('payment', e.target.value); });
   document.getElementById('addBtn').addEventListener('click', addTx);
