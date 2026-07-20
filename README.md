@@ -43,32 +43,7 @@ Sistema simples e gratuito para gerenciar as finanças de uma plantação de coq
 
 ---
 
-## ⚙️ Configuração
-
-O sistema usa o Supabase como backend. Para rodar a sua própria cópia:
-
-1. Crie um projeto gratuito em **[supabase.com](https://supabase.com)**.
-2. No **SQL Editor**, execute o conteúdo de [`supabase.sql`](supabase.sql) (cria a tabela `transactions` e o bucket de comprovantes).
-3. Em **Authentication → Users**, crie a conta da família e **desligue o cadastro público** (Authentication → Providers → Email).
-4. Em **Project Settings → API**, copie a **Project URL** e a chave **anon public**.
-5. Preencha os três valores no topo do [`app.js`](app.js):
-
-```js
-var SUPABASE_URL      = 'https://SEU-PROJETO.supabase.co';
-var SUPABASE_ANON_KEY = 'SUA-CHAVE-ANON';
-var FAMILY_EMAIL      = 'familia@coqueiros.com';
-```
-
-> A chave `anon` e a URL são **públicas por natureza** — a proteção dos dados vem do **Row Level Security (RLS)** e do cadastro público desativado, ambos configurados pelo `supabase.sql`.
-
----
-
 ## 🔒 Segurança
 
 - Os dados só são acessíveis para quem sabe a **senha da família**.
 - O **RLS** bloqueia qualquer acesso não autenticado.
-- Nenhuma chave secreta (`service_role`) ou senha fica no código.
-
----
-
-Feito com 🥥 para a gestão da plantação da família.
